@@ -1,9 +1,21 @@
+##########
+# Author: ZHANG Shenjia
+#
+##########
+
+
 import pandas as pd
 
 
 class RuleMetrics:
 
     def __init__(self, lhs, rhs, rule_type):
+        """
+
+        :param lhs:         (list) heros in the left hand side of association rule
+        :param rhs:         (list) heros in the right hand side of association rule
+        :param rule_type:   (str)  type of rule: allies / enemies
+        """
         self._lhs = lhs
         self._rhs = rhs
 
@@ -99,15 +111,32 @@ class RuleMetrics:
         lhs_lose_support = 0
 
         # support of rule: -e ==> r
-        rhs_win_support += self.get_win_support(df_match, radiant=self._lhs, dire=self._rhs, winner=-1)
-        rhs_win_support += self.get_win_support(df_match, radiant=self._rhs, dire=self._lhs, winner=1)
+        rhs_win_support += self.get_win_support(df_match,
+                                                radiant=self._lhs,
+                                                dire=self._rhs,
+                                                winner=-1)
+
+        rhs_win_support += self.get_win_support(df_match,
+                                                radiant=self._rhs,
+                                                dire=self._lhs,
+                                                winner=1)
 
         # lhs are enemies, who should lose
         # support of -e
-        lhs_lose_support += self.get_win_support(df_match, radiant=self._lhs, dire=None, winner=-1)
-        lhs_lose_support += self.get_win_support(df_match, radiant=None, dire=self._lhs, winner=1)
+        lhs_lose_support += self.get_win_support(df_match,
+                                                 radiant=self._lhs,
+                                                 dire=None,
+                                                 winner=-1)
 
-        return rhs_win_support * 1.0 /lhs_lose_support
+        lhs_lose_support += self.get_win_support(df_match,
+                                                 radiant=None,
+                                                 dire=self._lhs,
+                                                 winner=1)
+
+        confidence = rhs_win_support * 1.0 / lhs_lose_support
+        # print("rhs_win_support: {}, lhs_lose_support: {}, confidence: {}"
+        #       .format(rhs_win_support, lhs_lose_support, confidence))
+        return confidence
 
     def get_counter_coefficient(self, df_match):
         """
@@ -125,8 +154,15 @@ class RuleMetrics:
         rhs = self._rhs
 
         # support of rule: -e ==> r
-        rhs_win_support += self.get_win_support(df_match, radiant=lhs, dire=rhs, winner=-1)
-        rhs_win_support += self.get_win_support(df_match, radiant=rhs, dire=lhs, winner=1)
+        rhs_win_support += self.get_win_support(df_match,
+                                                radiant=lhs,
+                                                dire=rhs,
+                                                winner=-1)
+
+        rhs_win_support += self.get_win_support(df_match,
+                                                radiant=rhs,
+                                                dire=lhs,
+                                                winner=1)
 
         # rhs are enemies, who should lose
         lhs_win_support = 0
@@ -135,21 +171,30 @@ class RuleMetrics:
         rhs = self._lhs
 
         # support of rule: -r ==> e
-        lhs_win_support += self.get_win_support(df_match, radiant=lhs, dire=rhs, winner=-1)
-        lhs_win_support += self.get_win_support(df_match, radiant=rhs, dire=lhs, winner=1)
+        lhs_win_support += self.get_win_support(df_match,
+                                                radiant=lhs,
+                                                dire=rhs,
+                                                winner=-1)
 
-        return rhs_win_support * 1.0 / (rhs_win_support + lhs_win_support)
+        lhs_win_support += self.get_win_support(df_match,
+                                                radiant=rhs,
+                                                dire=lhs,
+                                                winner=1)
+
+        # print("lhs: {}, rhs: {}".format(self._lhs, self._rhs))
+
+        counter_coefficient = \
+            rhs_win_support * 1.0 / (rhs_win_support + lhs_win_support)
+        # print("rhs_win_support: {}, lhs_win_support: {}, counter_coefficient: {}"
+        #       .format(rhs_win_support, lhs_win_support, counter_coefficient))
+
+        return counter_coefficient
 
 
 class AssociationRule(RuleMetrics):
 
     def __init__(self, lhs, rhs, rule_type):
-        """
 
-        :param lhs:         (list) heros in the left hand side of association rule
-        :param rhs:         (list) heros in the right hand side of association rule
-        :param rule_type:   (str)  type of rule: allies / enemies
-        """
         RuleMetrics.__init__(self, lhs, rhs, rule_type)
 
         # metrics of rule
@@ -234,25 +279,35 @@ if __name__ == "__main__":
     df_radiant_win_radiant_heros = pd.read_csv('radiant_win_radiant_heros.csv')
     df_dire_win_radient_heros = pd.read_csv('dire_win_radiant_heros.csv')
     df_radiant_win_match = pd.read_csv('radiant_win_match.csv')
-    lhs = ['sven']
-    rhs = ['pudge']
+    lhs = ['pudge']
+    rhs = ['lycan']
 
     rule = AssociationRule(lhs, rhs, "enemies")
 
     print("TEST===============================TEST\n"
           "lhs: {}      rhs: {}\n".format(lhs, rhs))
 
-    rule.compute_metrics(df_radiant_win_radiant_heros, df_dire_win_radient_heros, df_radiant_win_match)
+    rule.compute_metrics(df_radiant_win_radiant_heros,
+                         df_dire_win_radient_heros,
+                         df_radiant_win_match)
 
     print(rule.allies_support)
     print(rule.allies_win_rate)
     print(rule.enemies_confidence)
     print(rule.counter_coefficient)
 
-    print('allies support: {}'.format(rule.get_allies_support(df_radiant_win_radiant_heros)))
-    print('win_rate: {}'.format(rule.get_allies_win_rate(df_radiant_win_radiant_heros, df_dire_win_radient_heros)))
-    print('confidence: {}'.format(rule.get_enemies_confidence(df_radiant_win_match)))
-    print('counter coefficient: {}'.format(rule.get_counter_coefficient(df_radiant_win_match)))
+    print('allies support: {}'
+          .format(rule.get_allies_support(df_radiant_win_radiant_heros)))
+
+    print('win_rate: {}'
+          .format(rule.get_allies_win_rate(df_radiant_win_radiant_heros,
+                                           df_dire_win_radient_heros)))
+
+    print('confidence: {}'
+          .format(rule.get_enemies_confidence(df_radiant_win_match)))
+
+    print('counter coefficient: {}'
+          .format(rule.get_counter_coefficient(df_radiant_win_match)))
 
 
 
